@@ -1,0 +1,21 @@
+{
+  "name": "爱情宇宙法庭",
+  "appid": "",
+  "description": "爱情宇宙法庭小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "uni-app": {
+    "vueVersion": "3",
+    "compilerVersion": "3.8.0"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "minified": true
+    },
+    "usingComponents": true,
+    "optimization": {
+      "subPackages": true
+    }
+  }
+}

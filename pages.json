@@ -1,0 +1,33 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "爱情宇宙法庭",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
+      }
+    },
+    {
+      "path": "pages/report/report",
+      "style": {
+        "navigationBarTitleText": "情感检举",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
+      }
+    },
+    {
+      "path": "pages/verdict/verdict",
+      "style": {
+        "navigationBarTitleText": "审判结果",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#1b1f3b",
+    "backgroundColor": "#0b0f1c"
+  }
+}

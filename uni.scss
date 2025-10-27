@@ -1,0 +1,10 @@
+/* 全局样式 */
+page {
+  background-color: var(--page-bg-color, #0b0f1c);
+  color: #f5f7ff;
+  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.dark page {
+  background-color: #070914;
+}
