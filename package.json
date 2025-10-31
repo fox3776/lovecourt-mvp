@@ -3,26 +3,49 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite",
-    "build:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite build",
+    "dev:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin NODE_OPTIONS=--require=./preload.js vite",
+    "build:mp-weixin": "cross-env UNI_PLATFORM=mp-weixin vite build && node scripts/copyStatic.js",
     "lint": "eslint --ext .ts,.vue src",
     "format": "prettier --write \"src/**/*.{ts,vue,scss,json}\""
   },
   "dependencies": {
-    "@dcloudio/uni-app": "^3.0.0",
-    "@dcloudio/uni-ui": "^1.4.28"
+    "@dcloudio/uni-app": "3.0.0-4070620250821001",
+    "@dcloudio/uni-app-harmony": "3.0.0-4070620250821001",
+    "@dcloudio/uni-app-plus": "3.0.0-4070620250821001",
+    "@dcloudio/uni-components": "3.0.0-4070620250821001",
+    "@dcloudio/uni-h5": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-alipay": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-baidu": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-harmony": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-jd": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-kuaishou": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-lark": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-qq": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-toutiao": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4070620250821001",
+    "@dcloudio/uni-mp-xhs": "3.0.0-4070620250821001",
+    "@dcloudio/uni-quickapp-webview": "3.0.0-4070620250821001",
+    "vue": "^3.4.21",
+    "vue-i18n": "^9.1.9",
+    "webpack": "^5.102.1"
   },
   "devDependencies": {
-    "@dcloudio/types": "^3.0.13",
-    "@types/node": "^20.10.5",
+    "@dcloudio/types": "^3.4.8",
+    "@dcloudio/uni-automator": "3.0.0-4070620250821001",
+    "@dcloudio/uni-cli-shared": "3.0.0-4070620250821001",
+    "@dcloudio/uni-stacktracey": "3.0.0-4070620250821001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4070620250821001",
+    "@types/node": "^20.19.23",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
+    "@vue/runtime-core": "^3.4.21",
     "cross-env": "^7.0.3",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.18.1",
+    "miniprogram-ci": "^2.1.26",
     "prettier": "^3.1.1",
     "typescript": "^5.3.3",
-    "vite": "^4.5.0"
+    "vite": "5.2.8"
   }
 }

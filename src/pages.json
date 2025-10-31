@@ -1,0 +1,77 @@
+{
+  "pages": [
+    {
+      "path": "pages/index",
+      "style": {
+        "navigationBarTitleText": "爱情宇宙法庭"
+      }
+    },
+    {
+      "path": "pages/report",
+      "style": {
+        "navigationBarTitleText": "报告"
+      }
+    },
+    {
+      "path": "pages/userProfile",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/chatHistory",
+      "style": {
+        "navigationBarTitleText": "聊天历史"
+      }
+    },
+    {
+      "path": "pages/connectionTest",
+      "style": {
+        "navigationBarTitleText": "连接测试"
+      }
+    },
+    {
+      "path": "pages/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/verdict",
+      "style": {
+        "navigationBarTitleText": "判决"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#1b1f3b",
+    "backgroundColor": "#0b0f1c"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index",
+        "iconPath": "static/icon/home.png",
+        "selectedIconPath": "static/icon/home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/report",
+        "iconPath": "static/icon/report.png",
+        "selectedIconPath": "static/icon/report-active.png",
+        "text": "报告"
+      },
+      {
+        "pagePath": "pages/userProfile",
+        "iconPath": "static/icon/user.png",
+        "selectedIconPath": "static/icon/user-active.png",
+        "text": "我的"
+      }
+    ]
+  }
+}

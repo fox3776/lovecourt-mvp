@@ -9,7 +9,7 @@
     "compilerVersion": "3.8.0"
   },
   "mp-weixin": {
-    "appid": "wx1285f13fd4947c63",
+    "appid": "",
     "setting": {
       "minified": true
     },

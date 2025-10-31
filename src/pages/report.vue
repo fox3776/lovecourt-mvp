@@ -71,7 +71,7 @@ function goJudge() {
   if (!summary.value) return;
   const sid = summary.value.id ? `?sid=${summary.value.id}` : '';
   const summaryParam = encodeURIComponent(summary.value.text);
-  const url = `/pages/verdict/verdict${sid ? `${sid}&` : '?'}summary=${summaryParam}`;
+  const url = `/pages/verdict${sid ? `${sid}&` : '?'}summary=${summaryParam}`;
   uni.navigateTo({ url });
 }
 
@@ -86,7 +86,7 @@ onMounted(() => {
 
 onShareAppMessage(() => ({
   title: '我正在爱情宇宙法庭检举恋爱案件',
-  path: '/pages/report/report',
+  path: '/pages/report',
 }));
 
 onShareTimeline(() => ({

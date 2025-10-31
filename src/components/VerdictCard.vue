@@ -10,7 +10,7 @@
       <view v-for="charge in verdict.charges" :key="charge.name" class="charge">
         <view class="charge-header">
           <text class="charge-name">{{ charge.name }}</text>
-          <text :class="['severity', `severity-${charge.severity}`]">{{ charge.severity }}</text>
+          <text :class="['severity', severityClass(charge.severity)]">{{ charge.severity }}</text>
         </view>
         <view v-if="charge.evidence?.length" class="evidence">
           <text v-for="item in charge.evidence" :key="item">• {{ item }}</text>
@@ -55,6 +55,15 @@ const props = defineProps<{
   verdict: Verdict;
   caseId?: string;
 }>();
+
+function severityClass(s: Verdict['charges'][number]['severity']) {
+  const map: Record<string, string> = {
+    '轻': 'severity-light',
+    '中': 'severity-medium',
+    '重': 'severity-heavy',
+  };
+  return map[s] || 'severity-medium';
+}
 
 function copyShare() {
   if (!props.verdict.share_summary) {
@@ -128,15 +137,15 @@ function copyShare() {
   border: 1rpx solid currentColor;
 }
 
-.severity-轻 {
+.severity-light {
   color: #4ade80;
 }
 
-.severity-中 {
+.severity-medium {
   color: #fbbf24;
 }
 
-.severity-重 {
+.severity-heavy {
   color: #f87171;
 }
 

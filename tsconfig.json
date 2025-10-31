@@ -10,10 +10,14 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["@dcloudio/types", "uni-app"],
+    "types": ["@dcloudio/types", "node"],
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "isolatedModules": true,
+    "typeRoots": ["./node_modules/@types", "./node_modules/@dcloudio/types"]
   },
-  "include": ["src/**/*", "uni-env.d.ts"],
+  "include": ["src/**/*", "uni-env.d.ts", "**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

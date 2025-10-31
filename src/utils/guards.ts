@@ -8,7 +8,7 @@ export function requireSummary(summary?: CaseSummary | null) {
     });
     setTimeout(() => {
       uni.switchTab({
-        url: '/pages/index/index',
+        url: '/pages/index',
       });
     }, 800);
     return false;

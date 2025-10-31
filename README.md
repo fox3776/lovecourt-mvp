@@ -27,15 +27,17 @@ project-root/
 
 ## 环境变量配置
 
-复制 `.env.example` 为 `.env`，并填写真实的 Dify 服务地址与密钥：
+复制 `.env.example` 为 `.env`，并填写真实的 Dify 服务地址与密钥（生产环境必须提供，且不应暴露在前端包中，推荐通过云函数代理）：
 
 ```
-DIFY_BASE_URL=https://your-dify-host
+DIFY_BASE_URL=https://your-dify-host   # 注意：不要带 /v1 结尾
 DIFY_API_KEY=your-api-key
 USE_MOCK=false
+WX_CLOUD_ENV_ID=your-cloud-env-id      # 例如 cloud1-xxxxxx
+FORCE_CLOUD_ONLY=false                 # 生产可设为 true 强制只走云函数
 ```
 
-- `USE_MOCK=true` 时，将完全启用本地 Mock，适合演示或离线开发。
+- `USE_MOCK=true` 时，将完全启用本地 Mock，适合演示或离线开发；生产环境请务必设为 `false`，并配置真实服务。
 - 小程序端可通过 `manifest.json` / `ext.json` 或构建工具注入上述变量。
 
 ## 本地开发
@@ -56,14 +58,22 @@ USE_MOCK=false
 npm run build:mp-weixin
 ```
 
-构建完成后，`dist/build/mp-weixin` 即为可导入微信开发者工具的项目包。
+构建完成后，`dist/` 目录即为可导入微信开发者工具的项目包根目录（包含 `app.json`）。
 
 ## Dify API 对接
 
 - 检举流程接口：`POST /v1/chat-messages`
 - 大法官审判接口：`POST /v1/judge`
 
-在 `src/utils/apiClient.ts` 中集中配置了 Base URL、鉴权 Header、错误处理与 Mock 逻辑，可根据实际返回结构进行适配。
+在 `src/utils/apiClient.ts` 中集中配置了 Base URL、鉴权 Header、错误处理（超时/重试/状态码映射）与 Mock 逻辑。对 `DIFY_BASE_URL` 做了兼容：若你误填了以 `/v1` 结尾，会自动移除，避免出现 `/v1/v1/...`。
+
+### 小程序云函数代理（推荐）
+
+- 云函数：`cloudfunctions/difyProxy`
+- 云环境变量（在微信云控制台配置）：
+  - `DIFY_BASE_URL`（不带末尾斜杠）
+  - `DIFY_API_KEY`（仅云端持有）
+- 客户端：小程序端自动走 `wx.cloud.callFunction('difyProxy')`，H5/开发端可直连（仅开发）。
 
 ## Mock 演示
 
@@ -72,7 +82,7 @@ npm run build:mp-weixin
 - 检举流程会在第 3 轮回复生成包含 `summary` 的示例数据。
 - 判决接口返回固定的结构化判决。
 
-Mock 数据位于 `src/mocks/` 目录，可按需调整。
+Mock 数据位于 `src/mocks/` 目录，可按需调整。连接性测试页已改为真实连通校验（Mock 模式下自动跳过）。
 
 ## 代码质量
 

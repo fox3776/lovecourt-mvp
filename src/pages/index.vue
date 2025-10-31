@@ -22,12 +22,12 @@
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
 
 function goReport() {
-  uni.navigateTo({ url: '/pages/report/report' });
+  uni.navigateTo({ url: '/pages/report' });
 }
 
 onShareAppMessage(() => ({
   title: '爱情宇宙法庭 - 情感纠纷检举站',
-  path: '/pages/index/index',
+  path: '/pages/index',
 }));
 
 onShareTimeline(() => ({

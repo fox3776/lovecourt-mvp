@@ -41,7 +41,7 @@ function retry() {
 }
 
 function goHome() {
-  uni.reLaunch({ url: '/pages/index/index' });
+  uni.reLaunch({ url: '/pages/index' });
 }
 
 onLoad((options) => {
@@ -59,7 +59,7 @@ onLoad((options) => {
 
 onShareAppMessage(() => ({
   title: verdict.value?.title || '爱情宇宙法庭·判决书',
-  path: `/pages/verdict/verdict?case=${caseId.value}`,
+  path: `/pages/verdict?case=${caseId.value}`,
 }));
 
 onShareTimeline(() => ({
