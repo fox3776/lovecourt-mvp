@@ -25,12 +25,6 @@
       }
     },
     {
-      "path": "pages/connectionTest",
-      "style": {
-        "navigationBarTitleText": "连接测试"
-      }
-    },
-    {
       "path": "pages/login",
       "style": {
         "navigationBarTitleText": "登录"

@@ -32,8 +32,9 @@ function initializeCloud() {
       return false;
     }
     
-    // 使用环境变量或默认环境ID
-    const cloudEnvId = (process.env.WX_CLOUD_ENV_ID || '').trim() || 'cloud1-5gfyzts930f77098';
+    // 使用环境变量或默认环境ID（构建期内联）
+    // 兼容逻辑已经在 vite.config.js 中合并到 WX_CLOUD_ENV_ID，这里仅读取一次
+    const cloudEnvId = ((process.env.WX_CLOUD_ENV_ID as any) as string || '').trim() || 'cloud1-5gfyzts930f77098';
     console.log('准备初始化微信云开发，环境ID:', cloudEnvId || '(未设置)');
     
     // 执行初始化（不依赖是否已有 database 方法）

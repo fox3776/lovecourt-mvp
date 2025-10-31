@@ -26,7 +26,6 @@
       </view>
       
       <view class="actions">
-        <button @click="handleOpenConnectionTest" class="test-btn">云连通测试</button>
         <button @click="handleLogout" class="logout-btn">退出登录</button>
         <button @click="handleClearData" class="clear-btn">清除数据</button>
       </view>
@@ -37,17 +36,14 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { ensureUserId, setUserId } from '@/utils/user'
+import { clearAll } from '@/utils/storage'
 
-const userInfo = ref({})
+const userInfo = ref({ username: '爱情宇宙用户', userId: '', registerTime: '', chatCount: 0 })
 
-const loadUserInfo = () => {
-  // 模拟加载用户信息
-  userInfo.value = {
-    username: '爱情宇宙用户',
-    userId: 'U123456789',
-    registerTime: '2024-01-01',
-    chatCount: 15
-  }
+const loadUserInfo = async () => {
+  const id = await ensureUserId()
+  userInfo.value.userId = id
 }
 
 const handleLogout = () => {
@@ -67,21 +63,17 @@ const handleLogout = () => {
             icon: 'success'
           })
           
-          // 跳转到登录页
-          uni.redirectTo({
-            url: '/pages/login'
-          })
+          // 清空用户与本地会话
+          setUserId('')
+          try { clearAll() } catch {}
+          // 回到首页
+          uni.switchTab({ url: '/pages/index' })
         }, 1000)
       }
     }
   })
 }
 
-const handleOpenConnectionTest = () => {
-  uni.navigateTo({
-    url: '/pages/connectionTest'
-  })
-}
 
 const handleClearData = () => {
   uni.showModal({

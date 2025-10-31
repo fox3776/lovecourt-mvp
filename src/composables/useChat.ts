@@ -9,7 +9,11 @@ import {
   saveChatHistory,
   saveConversationId,
   saveSummary,
+  saveCloudSessionId,
+  loadCloudSessionId,
 } from '@/utils/storage';
+import { ensureSession, appendDetail, updateSessionAfterMessage, updateSessionSummary } from '@/utils/cloudDb';
+import { ensureUserId } from '@/utils/user';
 
 type ReportState = 'idle' | 'chatting' | 'readyToJudge' | 'judging' | 'done' | 'error';
 
@@ -25,39 +29,60 @@ function buildMessage(text: string, role: ChatMessage['role']): ChatMessage {
 }
 
 function extractSummary(answer: string, metadata?: ChatResponseMetadata): CaseSummary | null {
-  if (metadata?.summary) {
-    return metadata.summary;
-  }
+  // 1) 优先使用后端提供的结构化摘要
+  if (metadata?.summary) return metadata.summary;
 
-  if (!answer.includes(SUMMARY_TRIGGER)) {
-    return null;
-  }
+  // 2) 文本中解析摘要片段
+  const tryParseFromText = (text: string): CaseSummary | null => {
+    const anchors = [
+      '情感陈述摘要',
+      '案情摘要',
+      '摘要',
+      SUMMARY_TRIGGER.replace(/[【】]/g, ''),
+      SUMMARY_TRIGGER,
+      '总结',
+    ];
+    let idx = -1;
+    for (const a of anchors) {
+      idx = text.indexOf(a);
+      if (idx >= 0) break;
+    }
+    const picked = idx >= 0 ? text.slice(idx) : text;
 
-  const lines = answer
-    .slice(answer.indexOf(SUMMARY_TRIGGER))
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
+    const lines = picked
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
 
-  const keywords: string[] = [];
-  lines.forEach((line) => {
-    if (line.includes('关键字') || line.includes('关键词')) {
-      const match = line.split('：')[1];
-      if (match) {
-        match
+    // 提取关键词（可选）
+    const keywords: string[] = [];
+    lines.forEach((line) => {
+      if (line.includes('关键字') || line.includes('关键词') || /keywords?/i.test(line)) {
+        const seg = line.split(/[:：]/)[1] || '';
+        seg
           .split(/[,，\s]+/)
           .map((k) => k.trim())
           .filter(Boolean)
           .forEach((k) => keywords.push(k));
       }
-    }
-  });
+    });
 
-  return {
-    id: `local_${Date.now()}`,
-    text: lines.join('\n'),
-    keywords: keywords.length ? keywords : undefined,
+    const body = lines.join('\n').trim();
+    if (!body) return null;
+    return { id: `local_${Date.now()}`, text: body, keywords: keywords.length ? keywords : undefined };
   };
+
+  // 3) 若 metadata 标记已就绪，则直接将本轮回答作为摘要（再尝试解析片段以提升质量）
+  if (metadata?.summary_ready) {
+    return tryParseFromText(answer) || { id: `local_${Date.now()}`, text: answer.trim() };
+  }
+
+  // 4) 回退：若文本包含显式触发词，也尝试解析
+  if (answer.includes(SUMMARY_TRIGGER) || /情感陈述摘要|案情摘要|摘要|总结/.test(answer)) {
+    return tryParseFromText(answer);
+  }
+
+  return null;
 }
 
 type ChatResponseMetadata = {
@@ -75,9 +100,11 @@ type ChatResponse = {
 export function useChat(userId?: string) {
   const history = ref<ChatMessage[]>(loadChatHistory());
   const conversationId = ref<string | null>(loadConversationId());
+  const cloudSessionId = ref<string | null>(loadCloudSessionId());
   const summary = ref<CaseSummary | null>(loadSummary());
   const state = ref<ReportState>(summary.value ? 'readyToJudge' : history.value.length ? 'chatting' : 'idle');
   const loading = ref(false);
+  const uid = ref<string>('');
 
   const isInputDisabled = computed(() =>
     ['readyToJudge', 'judging', 'done'].includes(state.value) || loading.value,
@@ -94,15 +121,30 @@ export function useChat(userId?: string) {
       return;
     }
 
+    // 确保拥有有效的 userId（Dify 要求）
+    try { if (!uid.value) uid.value = await ensureUserId() } catch (_) {}
+
     start();
     loading.value = true;
 
     const userMessage = buildMessage(text.trim(), 'user');
     history.value = [...history.value, userMessage];
     saveChatHistory(history.value);
+    // 云端：确保会话并记录明细
+    try {
+      const sid = await ensureSession(cloudSessionId.value, userMessage.text)
+      if (sid && sid !== cloudSessionId.value) {
+        cloudSessionId.value = sid
+        saveCloudSessionId(sid)
+      }
+      if (cloudSessionId.value) {
+        await appendDetail(cloudSessionId.value, { role: 'user', text: userMessage.text, ts: userMessage.ts })
+        await updateSessionAfterMessage(cloudSessionId.value, userMessage.text, 1)
+      }
+    } catch (_) {}
 
     try {
-      const response = await chat(text.trim(), userId, conversationId.value || undefined);
+      const response = await chat(text.trim(), uid.value || userId, conversationId.value || undefined);
       if (response.conversation_id) {
         conversationId.value = response.conversation_id;
         saveConversationId(response.conversation_id);
@@ -111,12 +153,21 @@ export function useChat(userId?: string) {
       const aiMessage = buildMessage(response.answer, 'ai');
       history.value = [...history.value, aiMessage];
       saveChatHistory(history.value);
+      // 云端：记录AI回复并更新会话
+      try {
+        if (cloudSessionId.value) {
+          await appendDetail(cloudSessionId.value, { role: 'ai', text: aiMessage.text, ts: aiMessage.ts })
+          await updateSessionAfterMessage(cloudSessionId.value, aiMessage.text, 1, response.conversation_id)
+        }
+      } catch (_) {}
 
       const extracted = extractSummary(response.answer, response.metadata);
       if (extracted) {
         summary.value = extracted;
         saveSummary(extracted);
         state.value = 'readyToJudge';
+        // 云端：更新摘要
+        try { if (cloudSessionId.value) await updateSessionSummary(cloudSessionId.value, extracted.text) } catch (_) {}
       } else if (response.metadata?.summary_ready) {
         state.value = 'readyToJudge';
       }
@@ -141,6 +192,8 @@ export function useChat(userId?: string) {
     loading.value = false;
     clearAll();
     resetMock();
+    cloudSessionId.value = null;
+    saveCloudSessionId(null);
   }
 
   return {

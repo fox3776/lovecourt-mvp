@@ -12,36 +12,37 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { setUserId } from '@/utils/user'
 
 const username = ref('')
 const password = ref('')
 
-const handleLogin = () => {
-  if (!username.value || !password.value) {
-    uni.showToast({
-      title: '请输入用户名和密码',
-      icon: 'none'
-    })
-    return
-  }
-  
-  // 模拟登录逻辑
-  uni.showLoading({
-    title: '登录中...'
-  })
-  
-  setTimeout(() => {
+const handleLogin = async () => {
+  uni.showLoading({ title: '登录中...' })
+  try {
+    // 优先云端 openid
+    // @ts-ignore
+    if (typeof wx !== 'undefined' && wx.cloud) {
+      // @ts-ignore
+      const res = await wx.cloud.callFunction({ name: 'login' })
+      const oid = res?.result?.openid
+      if (oid) {
+        setUserId(oid)
+        uni.showToast({ title: '登录成功', icon: 'success' })
+        uni.switchTab({ url: '/pages/index' })
+        return
+      }
+    }
+    // 兜底：使用表单名生成本地ID
+    const id = `user_${(username.value || 'guest')}_${Date.now()}`
+    setUserId(id)
+    uni.showToast({ title: '已离线登录', icon: 'success' })
+    uni.switchTab({ url: '/pages/index' })
+  } catch (e) {
+    uni.showToast({ title: '登录失败', icon: 'none' })
+  } finally {
     uni.hideLoading()
-    uni.showToast({
-      title: '登录成功',
-      icon: 'success'
-    })
-    
-    // 跳转到首页
-    uni.switchTab({
-      url: '/pages/index'
-    })
-  }, 1500)
+  }
 }
 
 onLoad(() => {

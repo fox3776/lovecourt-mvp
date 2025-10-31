@@ -22,7 +22,8 @@
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
 
 function goReport() {
-  uni.navigateTo({ url: '/pages/report' });
+  // report 是 tabBar 页面，必须使用 switchTab 跳转
+  uni.switchTab({ url: '/pages/report' });
 }
 
 onShareAppMessage(() => ({

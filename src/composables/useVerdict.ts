@@ -1,6 +1,9 @@
 import { ref } from 'vue';
 import type { Verdict } from '@/types';
 import { judge } from '@/utils/apiClient';
+import { ensureUserId } from '@/utils/user';
+import { loadCloudSessionId } from '@/utils/storage';
+import { markSessionCompleted } from '@/utils/cloudDb';
 
 type VerdictState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -21,13 +24,19 @@ export function useVerdict(userId?: string) {
     errorMessage.value = '';
 
     try {
-      const response = await judge(summary, userId);
-      caseId.value = response.case_id;
+      const uid = userId || (await ensureUserId());
+      const response = await judge(summary, uid);
+      if (!response || !response.verdict) {
+        throw new Error('未返回有效判决结构');
+      }
+      caseId.value = response.case_id || '';
       data.value = response.verdict;
       state.value = 'success';
-    } catch (error) {
+      // 云端：标记会话已完成
+      try { const sid = loadCloudSessionId(); if (sid) await markSessionCompleted(sid) } catch (_) {}
+    } catch (error: any) {
       console.error('judge error', error);
-      errorMessage.value = '召唤失败，请稍后再试';
+      errorMessage.value = error?.message || '召唤失败，请稍后再试';
       state.value = 'error';
     }
   }

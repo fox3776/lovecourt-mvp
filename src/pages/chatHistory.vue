@@ -5,12 +5,16 @@
     </view>
     
     <view class="content">
-      <view v-if="chatList.length === 0" class="empty">
+      <view v-if="loading && chatList.length === 0" class="skeleton-list">
+        <view class="skeleton-item" v-for="n in 4" :key="`sk-${n}`"></view>
+      </view>
+
+      <view v-else-if="chatList.length === 0" class="empty">
         <text class="empty-text">暂无历史对话</text>
         <text class="empty-hint">开始一段新的对话吧</text>
       </view>
       
-      <scroll-view v-else class="chat-list" scroll-y>
+      <scroll-view v-else class="chat-list" scroll-y @scrolltolower="loadMore">
         <view 
           v-for="chat in chatList" 
           :key="chat.id" 
@@ -27,48 +31,26 @@
             <text :class="['chat-status', chat.status]">{{ getStatusText(chat.status) }}</text>
           </view>
         </view>
+        <view class="load-more" v-if="hasMore && !loading">上拉加载更多...</view>
+        <view class="load-more" v-else-if="loading">加载中...</view>
+        <view class="load-more" v-else>没有更多了</view>
       </scroll-view>
     </view>
   </view>
-</template>
+  </template>
 
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { loadChatHistory as loadLocal } from '@/utils/storage'
 
 const chatList = ref([])
+const loading = ref(false)
+const hasMore = ref(true)
+const pageSize = 20
+const openId = ref('')
 
-const loadChatHistory = () => {
-  // 模拟加载聊天历史
-  chatList.value = [
-    {
-      id: '1',
-      title: '情感问题咨询',
-      time: '2024-01-15 14:30',
-      preview: '最近和伴侣有些矛盾，不知道该如何处理...',
-      messageCount: 8,
-      status: 'completed'
-    },
-    {
-      id: '2',
-      title: '关系修复建议',
-      time: '2024-01-14 10:20',
-      preview: '想要改善和伴侣的关系，有什么好的建议吗？',
-      messageCount: 12,
-      status: 'completed'
-    },
-    {
-      id: '3',
-      title: '沟通技巧学习',
-      time: '2024-01-13 16:45',
-      preview: '如何更好地与伴侣沟通？',
-      messageCount: 6,
-      status: 'processing'
-    }
-  ]
-}
-
-const getStatusText = (status) => {
+function getStatusText(status) {
   const statusMap = {
     'processing': '进行中',
     'completed': '已完成',
@@ -77,25 +59,92 @@ const getStatusText = (status) => {
   return statusMap[status] || '未知'
 }
 
-const viewChatDetail = (chat) => {
-  uni.showModal({
-    title: '查看对话详情',
-    content: `是否查看"${chat.title}"的详细内容？`,
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({
-          title: '跳转到对话详情',
-          icon: 'none'
-        })
-        // 这里可以跳转到具体的对话详情页面
-      }
-    }
-  })
+function mapCloudDocToItem(doc) {
+  return {
+    id: doc._id,
+    title: doc.title || '未命名会话',
+    time: formatTime(doc.updateTime),
+    preview: doc.preview || '',
+    messageCount: doc.messageCount || 0,
+    status: doc.status || 'completed'
+  }
 }
 
-onLoad(() => {
-  loadChatHistory()
-  console.log('历史对话页面加载')
+function formatTime(val) {
+  try {
+    const date = new Date(val?.toString ? val.toString() : val)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const hh = String(date.getHours()).padStart(2, '0')
+    const mm = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d} ${hh}:${mm}`
+  } catch {
+    return ''
+  }
+}
+
+async function fetchOpenId() {
+  try {
+    // @ts-ignore
+    if (typeof wx === 'undefined' || !wx.cloud) return
+    // @ts-ignore
+    const res = await wx.cloud.callFunction({ name: 'login' })
+    const oid = res?.result?.openid
+    if (oid) openId.value = oid
+  } catch (_) {}
+}
+
+async function fetchFromCloud(refresh = false) {
+  loading.value = true
+  try {
+    // @ts-ignore
+    if (typeof wx === 'undefined' || !wx.cloud || !wx.cloud.database) throw new Error('cloud-unavailable')
+    // @ts-ignore
+    const db = wx.cloud.database()
+    let coll = db.collection('chat_list')
+    if (openId.value) coll = coll.where({ _openid: openId.value })
+    const skip = refresh ? 0 : chatList.value.length
+    const res = await coll.orderBy('updateTime', 'desc').skip(skip).limit(pageSize).get()
+    const items = (res?.data || []).map(mapCloudDocToItem)
+    if (refresh) chatList.value = items
+    else chatList.value = chatList.value.concat(items)
+    hasMore.value = items.length >= pageSize
+  } catch (e) {
+    if (refresh && chatList.value.length === 0) {
+      // 本地兜底
+      const local = loadLocal()
+      if (local && local.length) {
+        const last = local[local.length - 1]
+        chatList.value = [
+          {
+            id: 'local_session',
+            title: '本地会话',
+            time: formatTime(last.ts),
+            preview: last.text?.slice(0, 40) || '',
+            messageCount: local.length,
+            status: 'completed'
+          }
+        ]
+        hasMore.value = false
+      }
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function loadMore() {
+  if (!loading.value && hasMore.value) fetchFromCloud(false)
+}
+
+function viewChatDetail(chat) {
+  uni.showToast({ title: '敬请期待：会话详情', icon: 'none' })
+}
+
+onLoad(async () => {
+  await fetchOpenId()
+  fetchFromCloud(true)
 })
 </script>
 
@@ -119,6 +168,25 @@ onLoad(() => {
 
 .content {
   flex: 1;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.skeleton-item {
+  height: 140rpx;
+  border-radius: 10rpx;
+  background: rgba(255,255,255,0.08);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
 }
 
 .empty {
@@ -220,5 +288,12 @@ onLoad(() => {
 .chat-status.pending {
   background: rgba(158, 158, 158, 0.2);
   color: #9e9e9e;
+}
+
+.load-more {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24rpx;
+  padding: 20rpx 0 10rpx;
 }
 </style>

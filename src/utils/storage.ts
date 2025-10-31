@@ -3,6 +3,7 @@ import type { CaseSummary, ChatMessage } from '@/types';
 const CHAT_KEY = 'lovecourt_chat_history';
 const SUMMARY_KEY = 'lovecourt_case_summary';
 const CONVERSATION_KEY = 'lovecourt_conversation_id';
+const CLOUD_SESSION_KEY = 'lovecourt_cloud_session_id';
 
 export function saveChatHistory(messages: ChatMessage[]) {
   try {
@@ -60,6 +61,24 @@ export function loadConversationId(): string | null {
   } catch (error) {
     console.warn('读取会话ID失败', error);
     return null;
+  }
+}
+
+export function saveCloudSessionId(id: string | null) {
+  try {
+    if (id) uni.setStorageSync(CLOUD_SESSION_KEY, id)
+    else uni.removeStorageSync(CLOUD_SESSION_KEY)
+  } catch (e) {
+    console.warn('保存云会话ID失败', e)
+  }
+}
+
+export function loadCloudSessionId(): string | null {
+  try {
+    return (uni.getStorageSync(CLOUD_SESSION_KEY) as string) || null
+  } catch (e) {
+    console.warn('读取云会话ID失败', e)
+    return null
   }
 }
 

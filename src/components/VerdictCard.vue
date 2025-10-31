@@ -1,13 +1,13 @@
 <template>
   <view class="verdict-card">
     <view class="header">
-      <text class="title">{{ verdict.title }}</text>
+      <text class="title">{{ vVerdict.title || '爱情宇宙法庭·判决书' }}</text>
       <text v-if="caseId" class="case">案号：{{ caseId }}</text>
     </view>
 
-    <view class="section" v-if="verdict.charges?.length">
+    <view class="section" v-if="vVerdict.charges?.length">
       <text class="section-title">指控列表</text>
-      <view v-for="charge in verdict.charges" :key="charge.name" class="charge">
+      <view v-for="charge in vVerdict.charges" :key="charge.name" class="charge">
         <view class="charge-header">
           <text class="charge-name">{{ charge.name }}</text>
           <text :class="['severity', severityClass(charge.severity)]">{{ charge.severity }}</text>
@@ -21,28 +21,49 @@
       </view>
     </view>
 
-    <view class="section" v-if="verdict.orders?.length">
-      <text class="section-title">大法官行为处方</text>
-      <view v-for="(order, index) in verdict.orders" :key="`${order.type}-${index}`" class="order">
-        <text class="order-type">{{ order.type }}</text>
-        <text class="order-content">{{ order.content }}</text>
-        <text v-if="order.deadline" class="order-deadline">截止：{{ order.deadline }}</text>
+    <!-- 按四段结构化展示：案件回顾 / 情感剖析 / 温柔裁定 / 最终判决 -->
+    <view class="section" v-if="sections.review">
+      <text class="section-title">案件回顾</text>
+      <text class="content">{{ sections.review }}</text>
+    </view>
+
+    <view class="section" v-if="sections.analysis">
+      <text class="section-title">情感剖析</text>
+      <text class="content">{{ sections.analysis }}</text>
+    </view>
+
+    <view class="section" v-if="sections.ruling">
+      <text class="section-title">温柔裁定</text>
+      <text class="content">{{ sections.ruling }}</text>
+    </view>
+
+    <view class="section" v-if="sections.judgement">
+      <text class="section-title">最终判决</text>
+      <text class="content">{{ sections.judgement }}</text>
+    </view>
+
+    <!-- 其余未归类内容 -->
+    <view class="section" v-if="sections.others.length">
+      <text class="section-title">更多内容</text>
+      <view v-for="(o, idx) in sections.others" :key="`${o.type}-${idx}`" class="order">
+        <text class="order-type">{{ o.type }}</text>
+        <text class="order-content">{{ o.content }}</text>
       </view>
     </view>
 
-    <view v-if="verdict.humor_penalty" class="section">
+    <view v-if="vVerdict.humor_penalty" class="section">
       <text class="section-title">幽默惩罚</text>
-      <text class="content">{{ verdict.humor_penalty }}</text>
+      <text class="content">{{ vVerdict.humor_penalty }}</text>
     </view>
 
-    <view v-if="verdict.tips?.length" class="section">
+    <view v-if="vVerdict.tips?.length" class="section">
       <text class="section-title">和解小贴士</text>
       <view class="tips">
-        <text v-for="tip in verdict.tips" :key="tip" class="tip">{{ tip }}</text>
+        <text v-for="tip in vVerdict.tips" :key="tip" class="tip">{{ tip }}</text>
       </view>
     </view>
 
-    <button v-if="verdict.share_summary" class="copy-btn" @click="copyShare">
+    <button v-if="vVerdict.share_summary" class="copy-btn" @click="copyShare">
       复制判决摘要
     </button>
   </view>
@@ -56,6 +77,42 @@ const props = defineProps<{
   caseId?: string;
 }>();
 
+import { computed } from 'vue';
+// 兼容传入的是 Ref/ComputedRef 的情况
+const vVerdict = computed(() => {
+  const anyV: any = props.verdict as any;
+  return anyV && typeof anyV === 'object' && 'value' in anyV ? anyV.value : props.verdict;
+});
+
+// 从 orders 中提取四段内容（避免使用 Map/Object.values 以兼容低版本运行时）
+const sections = computed(() => {
+  const orders = (vVerdict.value?.orders as any[]) || []
+  const bucket: Record<string, string[]> = {}
+  for (let i = 0; i < orders.length; i++) {
+    const item = orders[i] || {}
+    const t = (item.type || '').toString()
+    const c = (item.content || '').toString()
+    if (!t || !c) continue
+    if (!bucket[t]) bucket[t] = []
+    bucket[t].push(c)
+  }
+  const pick = (key: string) => (bucket[key] ? bucket[key].join('\n\n') : '')
+  const known = ['案件回顾', '情感剖析', '温柔裁定', '最终判决']
+  const others: { type: string; content: string }[] = []
+  for (const k in bucket) {
+    if (Object.prototype.hasOwnProperty.call(bucket, k)) {
+      if (!known.includes(k)) others.push({ type: k, content: bucket[k].join('\n\n') })
+    }
+  }
+  return {
+    review: pick('案件回顾'),
+    analysis: pick('情感剖析'),
+    ruling: pick('温柔裁定'),
+    judgement: pick('最终判决'),
+    others,
+  }
+})
+
 function severityClass(s: Verdict['charges'][number]['severity']) {
   const map: Record<string, string> = {
     '轻': 'severity-light',
@@ -66,11 +123,12 @@ function severityClass(s: Verdict['charges'][number]['severity']) {
 }
 
 function copyShare() {
-  if (!props.verdict.share_summary) {
+  const v: any = vVerdict.value as any;
+  if (!v?.share_summary) {
     return;
   }
   uni.setClipboardData({
-    data: props.verdict.share_summary,
+    data: v.share_summary,
     success: () => {
       uni.showToast({ title: '已复制', icon: 'success' });
     },

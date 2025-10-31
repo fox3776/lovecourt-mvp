@@ -1,5 +1,5 @@
 {
-  "name": "dify-proxy",
+  "name": "dify-judge",
   "version": "1.0.0",
   "private": true,
   "dependencies": {

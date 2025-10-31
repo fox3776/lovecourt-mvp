@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
     process.env[key] = env[key];
   });
   const useMock = String(env.USE_MOCK || '').toLowerCase() === 'true';
-  const cloudEnvId = env.WX_CLOUD_ENV_ID || '';
+  // 兼容旧变量名 VITE_CLOUD_ENV_ID，优先使用 WX_CLOUD_ENV_ID
+  const cloudEnvId = env.WX_CLOUD_ENV_ID || env.VITE_CLOUD_ENV_ID || '';
   const forceCloudOnly = String(env.FORCE_CLOUD_ONLY || '').toLowerCase() === 'true';
 
   // 在非 Mock 场景下，必须提供服务地址与密钥
@@ -33,7 +34,8 @@ export default defineConfig(({ mode }) => {
       'process.env.USE_MOCK': JSON.stringify(env.USE_MOCK || 'false'),
       'process.env.WX_CLOUD_ENV_ID': JSON.stringify(cloudEnvId),
       'process.env.FORCE_CLOUD_ONLY': JSON.stringify(forceCloudOnly ? 'true' : 'false'),
-      'process.env.BASE_URL': JSON.stringify(env.BASE_URL || '/')
+      'process.env.BASE_URL': JSON.stringify(env.BASE_URL || '/'),
+      'process.env.DIFY_JUDGE_WORKFLOW_ID': JSON.stringify(env.DIFY_JUDGE_WORKFLOW_ID || '')
     }
   }
 })

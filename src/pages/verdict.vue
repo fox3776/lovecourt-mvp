@@ -24,7 +24,9 @@ import { computed, ref } from 'vue';
 import { onLoad, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
 import VerdictCard from '@/components/VerdictCard.vue';
 import { useVerdict } from '@/composables/useVerdict';
-import { loadSummary } from '@/utils/storage';
+import { loadSummary, clearAll, saveConversationId } from '@/utils/storage';
+import { saveCloudSessionId } from '@/utils/storage';
+import { resetMock } from '@/utils/apiClient';
 
 const summaryText = ref('');
 const { state, data, caseId, errorMessage, fetch } = useVerdict();
@@ -40,8 +42,18 @@ function retry() {
   }
 }
 
+function resetForNewCase() {
+  try {
+    clearAll()
+    saveCloudSessionId(null as any)
+    saveConversationId(null)
+    resetMock()
+  } catch {}
+}
+
 function goHome() {
-  uni.reLaunch({ url: '/pages/index' });
+  resetForNewCase()
+  uni.switchTab({ url: '/pages/index' })
 }
 
 onLoad((options) => {
@@ -57,10 +69,14 @@ onLoad((options) => {
   fetch(summaryText.value);
 });
 
-onShareAppMessage(() => ({
-  title: verdict.value?.title || '爱情宇宙法庭·判决书',
-  path: `/pages/verdict?case=${caseId.value}`,
-}));
+onShareAppMessage(() => {
+  // 分享时也准备好新一轮对话
+  resetForNewCase()
+  return {
+    title: verdict.value?.title || '爱情宇宙法庭·判决书',
+    path: `/pages/verdict?case=${caseId.value}`,
+  }
+});
 
 onShareTimeline(() => ({
   title: '我们在爱情宇宙法庭完成了和解之旅',
